@@ -1,0 +1,6 @@
+{
+  "name": "Jumping Game",
+  "description": "An arcade jumping game featuring the hand-drawn Doodle Bounce start screen, authentic sketchpad graph paper theme, 9 playable doodle characters, and dynamic vertical jumping.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
