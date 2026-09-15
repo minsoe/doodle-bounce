@@ -1,4 +1,4 @@
-import { Player, Platform, Collectible, Particle, CharacterSkinId } from './types';
+import { Player, Platform, Collectible, Particle, CharacterSkinId, Monster, Bullet } from './types';
 
 export interface FloatingText {
   id: number;
@@ -454,6 +454,37 @@ export class GameRenderer {
         break;
     }
 
+    // Knocked out / dying by monster effect
+    if (player.isDying) {
+      ctx.save();
+      // Orbiting comic stars
+      const starCount = 3;
+      for (let s = 0; s < starCount; s++) {
+        const starAngle = (tick * 0.15) + (s * (Math.PI * 2 / starCount));
+        const sx = Math.cos(starAngle) * 22;
+        const sy = -player.height * 0.52 + Math.sin(starAngle) * 5;
+        ctx.fillStyle = '#facc15';
+        ctx.strokeStyle = '#854d0e';
+        ctx.lineWidth = 1;
+        this.drawStar(ctx, sx, sy, 5, 5, 2.5);
+        ctx.fill();
+        ctx.stroke();
+      }
+      // Red comical X_X over face
+      ctx.strokeStyle = '#dc2626';
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      // Left eye X
+      ctx.moveTo(-10, -9); ctx.lineTo(-4, -3);
+      ctx.moveTo(-4, -9); ctx.lineTo(-10, -3);
+      // Right eye X
+      ctx.moveTo(4, -9); ctx.lineTo(10, -3);
+      ctx.moveTo(10, -9); ctx.lineTo(4, -3);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.restore();
   }
 
@@ -540,7 +571,8 @@ export class GameRenderer {
     h: number,
     fillColor: string,
     outlineColor = '#1d4ed8',
-    rimColor = '#0f172a'
+    rimColor = '#0f172a',
+    recoilTimer = 0
   ) {
     ctx.fillStyle = fillColor;
     ctx.strokeStyle = outlineColor;
@@ -549,14 +581,16 @@ export class GameRenderer {
 
     const startX = w * 0.3;
     const startY = -h * 0.04;
-    const snoutLength = 15;
+    const isRecoiling = recoilTimer > 0;
+    const snoutLength = isRecoiling ? 18 : 15;
     const tipX = startX + snoutLength;
+    const flareH = isRecoiling ? 8.5 : 6.5;
 
     // Tube with flared trumpet horn at the end
     ctx.beginPath();
     ctx.moveTo(startX, startY - 4.5);
-    ctx.quadraticCurveTo(startX + 8, startY - 4, tipX, startY - 6.5);
-    ctx.lineTo(tipX, startY + 6.5);
+    ctx.quadraticCurveTo(startX + 8, startY - 4, tipX, startY - flareH);
+    ctx.lineTo(tipX, startY + flareH);
     ctx.quadraticCurveTo(startX + 8, startY + 4, startX, startY + 4.5);
     ctx.closePath();
     ctx.fill();
@@ -565,9 +599,20 @@ export class GameRenderer {
     // Dark flared mouth opening at tip
     ctx.fillStyle = rimColor;
     ctx.beginPath();
-    ctx.ellipse(tipX, startY, 2.4, 6.2, 0, 0, Math.PI * 2);
+    ctx.ellipse(tipX, startY, isRecoiling ? 3.6 : 2.4, flareH - 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
+
+    // Comic smoke puff ring from mouth when firing
+    if (isRecoiling) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.65)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(tipX + 6, startY, 4 + (8 - recoilTimer) * 1.2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   // Common: Signature Doodle vertical slit eyes
@@ -614,7 +659,7 @@ export class GameRenderer {
     }
 
     // Snout
-    this.drawDoodleSnout(ctx, w, h, '#facc15', '#1d4ed8', '#0f172a');
+    this.drawDoodleSnout(ctx, w, h, '#facc15', '#1d4ed8', '#0f172a', player.shootRecoilTimer ?? 0);
 
     // Slit Eyes
     this.drawDoodleEyes(ctx, w, h, '#0f172a');
@@ -659,7 +704,7 @@ export class GameRenderer {
     ctx.stroke();
 
     // Snout
-    this.drawDoodleSnout(ctx, w, h, '#facc15', '#1d4ed8', '#0f172a');
+    this.drawDoodleSnout(ctx, w, h, '#facc15', '#1d4ed8', '#0f172a', player.shootRecoilTimer ?? 0);
 
     // Backwards Baseball Cap (Red & Yellow)
     ctx.fillStyle = '#dc2626';
@@ -802,7 +847,7 @@ export class GameRenderer {
     ctx.fill();
 
     // Snout
-    this.drawDoodleSnout(ctx, w, h, '#facc15', '#1e293b', '#0f172a');
+    this.drawDoodleSnout(ctx, w, h, '#facc15', '#1e293b', '#0f172a', player.shootRecoilTimer ?? 0);
 
     // Cool Black Sunglasses (Shades)
     ctx.fillStyle = '#0f172a';
@@ -869,7 +914,7 @@ export class GameRenderer {
     ctx.fillText('11', 1, 3);
 
     // Snout
-    this.drawDoodleSnout(ctx, w, h, '#fef08a', '#1e3a8a', '#0f172a');
+    this.drawDoodleSnout(ctx, w, h, '#fef08a', '#1e3a8a', '#0f172a', player.shootRecoilTimer ?? 0);
 
     // Vertical Slit Eyes
     this.drawDoodleEyes(ctx, w, h, '#0f172a');
@@ -929,7 +974,7 @@ export class GameRenderer {
     this.drawDoodleBody(ctx, w, h, '#ef4444', '#1e3a8a');
 
     // Snout (Red with dark opening)
-    this.drawDoodleSnout(ctx, w, h, '#ef4444', '#1e3a8a', '#0f172a');
+    this.drawDoodleSnout(ctx, w, h, '#ef4444', '#1e3a8a', '#0f172a', player.shootRecoilTimer ?? 0);
 
     // Goggle strap / headband with eyes
     ctx.fillStyle = '#1e3a8a';
@@ -1009,7 +1054,7 @@ export class GameRenderer {
     }
 
     // Snout
-    this.drawDoodleSnout(ctx, w, h, '#d97706', '#1e3a8a', '#0f172a');
+    this.drawDoodleSnout(ctx, w, h, '#d97706', '#1e3a8a', '#0f172a', player.shootRecoilTimer ?? 0);
 
     // Vertical Slit Eyes
     this.drawDoodleEyes(ctx, w, h, '#0f172a');
@@ -1082,7 +1127,7 @@ export class GameRenderer {
     ctx.fillText('37', 0, 3.5);
 
     // Snout
-    this.drawDoodleSnout(ctx, w, h, '#facc15', '#1d4ed8', '#0f172a');
+    this.drawDoodleSnout(ctx, w, h, '#facc15', '#1d4ed8', '#0f172a', player.shootRecoilTimer ?? 0);
 
     // Blue Athletic Sweatband with white racing stripe
     ctx.fillStyle = '#2563eb';
@@ -1170,7 +1215,7 @@ export class GameRenderer {
     }
 
     // Snout
-    this.drawDoodleSnout(ctx, w, h, '#334155', '#0f172a', '#020617');
+    this.drawDoodleSnout(ctx, w, h, '#334155', '#0f172a', '#020617', player.shootRecoilTimer ?? 0);
 
     // Sharp glowing eyes with amber center
     ctx.fillStyle = '#fef08a';
@@ -1240,7 +1285,7 @@ export class GameRenderer {
     }
 
     // Snout (White with blue rim)
-    this.drawDoodleSnout(ctx, w, h, '#ffffff', '#2563eb', '#0f172a');
+    this.drawDoodleSnout(ctx, w, h, '#ffffff', '#2563eb', '#0f172a', player.shootRecoilTimer ?? 0);
 
     // Vertical Slit Eyes
     this.drawDoodleEyes(ctx, w, h, '#0f172a');
@@ -1284,6 +1329,171 @@ export class GameRenderer {
     ctx.restore();
   }
 
+  // Draw Bullets: "The bullet is a black circle."
+  static drawBullets(ctx: CanvasRenderingContext2D, bullets: Bullet[], cameraY: number) {
+    if (!bullets || bullets.length === 0) return;
+    ctx.save();
+
+    for (const b of bullets) {
+      if (!b.active) continue;
+      const screenY = b.y - cameraY;
+
+      // Cull bullets outside viewport
+      if (screenY < -50 || screenY > 850 || b.x < -50 || b.x > 500) continue;
+
+      // Motion streak puffs behind the bullet
+      const speed = Math.hypot(b.vx, b.vy);
+      if (speed > 1) {
+        const nx = b.vx / speed;
+        const ny = b.vy / speed;
+
+        // Faint trailing ink smudge
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';
+        ctx.beginPath();
+        ctx.arc(b.x - nx * 7, screenY - ny * 7, b.radius * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.12)';
+        ctx.beginPath();
+        ctx.arc(b.x - nx * 13, screenY - ny * 13, b.radius * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // The projectile: Solid Black Circle as required
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(b.x, screenY, b.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Sharp sketch ring
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      // Hand-drawn white glossy dot
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(b.x - b.radius * 0.35, screenY - b.radius * 0.35, b.radius * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // Draw HUD Ammo Indicator (6 shots limit + 2s cooldown timer)
+  static drawAmmoHUD(
+    ctx: CanvasRenderingContext2D,
+    shotsLeft: number,
+    maxShots: number = 6,
+    cooldownFrames: number,
+    maxCooldownFrames: number = 120
+  ) {
+    ctx.save();
+    const x = 16;
+    const y = 62;
+    const w = 126;
+    const h = 26;
+    const isReloading = cooldownFrames > 0;
+
+    // Doodle sketch frame
+    ctx.fillStyle = isReloading ? 'rgba(254, 242, 242, 0.94)' : 'rgba(255, 255, 255, 0.92)';
+    ctx.strokeStyle = isReloading ? '#ef4444' : '#1e293b';
+    ctx.lineWidth = 1.8;
+    this.roundRect(ctx, x, y, w, h, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    if (isReloading) {
+      // Cooldown progress bar (2 seconds countdown)
+      const progress = 1 - (cooldownFrames / maxCooldownFrames);
+      const secondsLeft = (cooldownFrames / 60).toFixed(1);
+
+      ctx.fillStyle = '#fecaca';
+      this.roundRect(ctx, x + 3, y + 3, Math.max(4, (w - 6) * progress), h - 6, 4);
+      ctx.fill();
+
+      ctx.fillStyle = '#b91c1c';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`RELOAD: ${secondsLeft}s`, x + w / 2, y + h / 2 + 0.5);
+    } else {
+      // 6 black pellet bullets
+      const spacing = 16;
+      const startPelletX = x + 23;
+      const pelletY = y + h / 2;
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('AMMO', x + 5, pelletY - 7);
+
+      for (let i = 0; i < maxShots; i++) {
+        const px = startPelletX + i * spacing;
+        if (i < shotsLeft) {
+          // Available black circle bullet
+          ctx.fillStyle = '#000000';
+          ctx.beginPath();
+          ctx.arc(px, pelletY + 1, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = '#334155';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Shiny gleam
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(px - 1.2, pelletY - 0.2, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          // Empty spent bullet outline
+          ctx.strokeStyle = '#cbd5e1';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(px, pelletY + 1, 4.5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // Draw subtle hand-drawn crosshair at mouse pointer
+  static drawAimCrosshair(ctx: CanvasRenderingContext2D, aimX: number, aimY: number) {
+    if (aimX < 0 || aimX > 440 || aimY < 0 || aimY > 720) return;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.45)';
+    ctx.lineWidth = 1.3;
+    ctx.setLineDash([3, 3]);
+
+    // Outer reticle circle
+    ctx.beginPath();
+    ctx.arc(aimX, aimY, 11, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Crosshair tick marks
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.65)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(aimX - 6, aimY);
+    ctx.lineTo(aimX + 6, aimY);
+    ctx.moveTo(aimX, aimY - 6);
+    ctx.lineTo(aimX, aimY + 6);
+    ctx.stroke();
+
+    // Center dot
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(aimX, aimY, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
   // Helper for rounded rectangle
   private static roundRect(
     ctx: CanvasRenderingContext2D,
@@ -1291,11 +1501,16 @@ export class GameRenderer {
     y: number,
     w: number,
     h: number,
-    radius: number | { tl?: number; tr?: number; bl?: number; br?: number }
+    radius: number | number[] | { tl?: number; tr?: number; bl?: number; br?: number }
   ) {
     let tl = 0, tr = 0, bl = 0, br = 0;
     if (typeof radius === 'number') {
       tl = tr = bl = br = radius;
+    } else if (Array.isArray(radius)) {
+      tl = radius[0] ?? 0;
+      tr = radius[1] ?? radius[0] ?? 0;
+      br = radius[2] ?? radius[0] ?? 0;
+      bl = radius[3] ?? radius[1] ?? radius[0] ?? 0;
     } else {
       tl = radius.tl || 0;
       tr = radius.tr || 0;
@@ -1316,7 +1531,7 @@ export class GameRenderer {
     ctx.closePath();
   }
 
-  // Helper for star drawing
+  // Helper for drawing stars
   private static drawStar(
     ctx: CanvasRenderingContext2D,
     cx: number,
@@ -1346,4 +1561,578 @@ export class GameRenderer {
     ctx.lineTo(cx, cy - outerRadius);
     ctx.closePath();
   }
+
+  // Render all active monsters
+  static drawMonsters(
+    ctx: CanvasRenderingContext2D,
+    monsters: Monster[],
+    cameraY: number,
+    tick: number
+  ) {
+    for (const m of monsters) {
+      const screenY = m.y - cameraY;
+      // Cull offscreen monsters
+      if (screenY < -120 || screenY > 840) continue;
+
+      ctx.save();
+      const centerX = m.x + m.width / 2;
+      const centerY = screenY + m.height / 2;
+      ctx.translate(centerX, centerY);
+
+      // Gentle floating/breathing animation
+      const breath = Math.sin(tick * 0.08 + m.id) * 1.5;
+      ctx.translate(0, breath);
+
+      switch (m.type) {
+        case 'green':
+          this.drawGreenMonster(ctx, m, tick);
+          break;
+        case 'blue':
+          this.drawBlueMonster(ctx, m, tick);
+          break;
+        case 'red':
+          this.drawRedMonster(ctx, m, tick);
+          break;
+      }
+
+      ctx.restore();
+    }
+  }
+
+  // 1. Green Monster (from monster.jpg: skull/cat ears, inverted "V" brow, fangs, cheek whiskers)
+  private static drawGreenMonster(
+    ctx: CanvasRenderingContext2D,
+    m: Monster,
+    tick: number
+  ) {
+    ctx.save();
+    const flip = m.facing === 'left' ? -1 : 1;
+    ctx.scale(flip, 1);
+
+    const w = m.width;
+    const h = m.height;
+    const halfW = w / 2;
+    const halfH = h / 2;
+
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    // Head contour with two pointed horns/ears on top and skull/cat cheeks
+    ctx.beginPath();
+    ctx.moveTo(-halfW * 0.8, -halfH * 1.15); // Left ear tip
+    ctx.quadraticCurveTo(0, -halfH * 0.7, halfW * 0.8, -halfH * 1.15); // Crown & right ear tip
+    ctx.quadraticCurveTo(halfW * 1.05, -halfH * 0.5, halfW * 0.95, -halfH * 0.1);
+    ctx.quadraticCurveTo(halfW * 0.75, halfH * 0.25, halfW * 0.7, halfH * 0.8);
+    ctx.quadraticCurveTo(0, halfH * 1.05, -halfW * 0.7, halfH * 0.8); // Chin
+    ctx.quadraticCurveTo(-halfW * 0.75, halfH * 0.25, -halfW * 0.95, -halfH * 0.1);
+    ctx.quadraticCurveTo(-halfW * 1.05, -halfH * 0.5, -halfW * 0.8, -halfH * 1.15);
+    ctx.closePath();
+
+    // Crayon green gradient fill
+    const grad = ctx.createLinearGradient(0, -halfH, 0, halfH);
+    grad.addColorStop(0, '#86efac');
+    grad.addColorStop(0.3, '#4ade80');
+    grad.addColorStop(1, '#22c55e');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Dark green felt marker outline
+    ctx.strokeStyle = '#14532d';
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+
+    // Ear inner sketch texture
+    ctx.strokeStyle = '#15803d';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-halfW * 0.7, -halfH * 0.95);
+    ctx.lineTo(-halfW * 0.5, -halfH * 0.65);
+    ctx.moveTo(halfW * 0.7, -halfH * 0.95);
+    ctx.lineTo(halfW * 0.5, -halfH * 0.65);
+    ctx.stroke();
+
+    // Forehead "V" mark from drawing
+    ctx.strokeStyle = '#14532d';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(-4.5, -halfH * 0.42);
+    ctx.lineTo(0, -halfH * 0.18);
+    ctx.lineTo(4.5, -halfH * 0.42);
+    ctx.stroke();
+
+    // Eyes - Two large white ovals
+    const eyeOffsetX = halfW * 0.42;
+    const eyeOffsetY = -halfH * 0.12;
+    const eyeRadiusX = halfW * 0.28;
+    const eyeRadiusY = halfH * 0.34;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#14532d';
+    ctx.lineWidth = 2;
+    // Left eye
+    ctx.beginPath();
+    ctx.ellipse(-eyeOffsetX, eyeOffsetY, eyeRadiusX, eyeRadiusY, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // Right eye
+    ctx.beginPath();
+    ctx.ellipse(eyeOffsetX, eyeOffsetY, eyeRadiusX, eyeRadiusY, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Inverted triangle pupils from drawing
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.moveTo(-eyeOffsetX - 3.8, eyeOffsetY - 4);
+    ctx.lineTo(-eyeOffsetX + 3.8, eyeOffsetY - 4);
+    ctx.lineTo(-eyeOffsetX, eyeOffsetY + 4.5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(eyeOffsetX - 3.8, eyeOffsetY - 4);
+    ctx.lineTo(eyeOffsetX + 3.8, eyeOffsetY - 4);
+    ctx.lineTo(eyeOffsetX, eyeOffsetY + 4.5);
+    ctx.closePath();
+    ctx.fill();
+
+    // White shine dot
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(-eyeOffsetX - 1.5, eyeOffsetY - 2, 1.2, 0, Math.PI * 2);
+    ctx.arc(eyeOffsetX - 1.5, eyeOffsetY - 2, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Mouth line
+    const mouthY = halfH * 0.42;
+    ctx.strokeStyle = '#14532d';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(-halfW * 0.52, mouthY);
+    ctx.lineTo(halfW * 0.52, mouthY);
+    ctx.stroke();
+
+    // Two downward-pointing sharp white fangs
+    const fangW = 3.5;
+    const fangH = 7.5;
+    const fang1X = -halfW * 0.22;
+    const fang2X = halfW * 0.22;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#14532d';
+    ctx.lineWidth = 1.8;
+
+    ctx.beginPath();
+    ctx.moveTo(fang1X - fangW, mouthY);
+    ctx.lineTo(fang1X + fangW, mouthY);
+    ctx.lineTo(fang1X, mouthY + fangH);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(fang2X - fangW, mouthY);
+    ctx.lineTo(fang2X + fangW, mouthY);
+    ctx.lineTo(fang2X, mouthY + fangH);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // 3 horizontal whiskers on left and 3 on right
+    const whiskerTwitch = Math.sin(tick * 0.25) * 1.5;
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    // Left whiskers
+    ctx.moveTo(-halfW * 0.8, halfH * 0.25);
+    ctx.lineTo(-halfW * 1.5, halfH * 0.2 + whiskerTwitch);
+    ctx.moveTo(-halfW * 0.75, halfH * 0.45);
+    ctx.lineTo(-halfW * 1.55, halfH * 0.45);
+    ctx.moveTo(-halfW * 0.7, halfH * 0.65);
+    ctx.lineTo(-halfW * 1.45, halfH * 0.7 - whiskerTwitch);
+
+    // Right whiskers
+    ctx.moveTo(halfW * 0.8, halfH * 0.25);
+    ctx.lineTo(halfW * 1.5, halfH * 0.2 - whiskerTwitch);
+    ctx.moveTo(halfW * 0.75, halfH * 0.45);
+    ctx.lineTo(halfW * 1.55, halfH * 0.45);
+    ctx.moveTo(halfW * 0.7, halfH * 0.65);
+    ctx.lineTo(halfW * 1.45, halfH * 0.7 + whiskerTwitch);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // 2. Blue Monster (from monster.jpg: capsule body, horns, yellow cyclops eye, toothy grin, stick legs + flying wings)
+  private static drawBlueMonster(
+    ctx: CanvasRenderingContext2D,
+    m: Monster,
+    tick: number
+  ) {
+    ctx.save();
+    const flip = m.facing === 'left' ? -1 : 1;
+    ctx.scale(flip, 1);
+
+    const w = m.width;
+    const h = m.height;
+    const halfW = w / 2;
+    const halfH = h / 2;
+
+    const wingFlap = Math.sin(tick * 0.35) * 0.35;
+
+    // Fluttering sketch wings on sides
+    ctx.save();
+    ctx.fillStyle = 'rgba(191, 219, 254, 0.8)';
+    ctx.strokeStyle = '#1e3a8a';
+    ctx.lineWidth = 1.8;
+    ctx.lineJoin = 'round';
+
+    // Left wing
+    ctx.save();
+    ctx.translate(-halfW * 0.7, -halfH * 0.1);
+    ctx.rotate(-0.2 + wingFlap);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(-15, -14, -20, -5);
+    ctx.quadraticCurveTo(-14, 4, -8, 2);
+    ctx.quadraticCurveTo(-10, 10, 0, 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    // Right wing
+    ctx.save();
+    ctx.translate(halfW * 0.7, -halfH * 0.1);
+    ctx.rotate(0.2 - wingFlap);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(15, -14, 20, -5);
+    ctx.quadraticCurveTo(14, 4, 8, 2);
+    ctx.quadraticCurveTo(10, 10, 0, 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.restore();
+
+    // Top horns
+    ctx.fillStyle = '#1e1b4b';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2;
+    // Left horn
+    ctx.beginPath();
+    ctx.moveTo(-halfW * 0.65, -halfH * 0.7);
+    ctx.quadraticCurveTo(-halfW * 0.95, -halfH * 1.05, -halfW * 0.85, -halfH * 1.3);
+    ctx.quadraticCurveTo(-halfW * 0.45, -halfH * 1.05, -halfW * 0.3, -halfH * 0.75);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Right horn
+    ctx.beginPath();
+    ctx.moveTo(halfW * 0.3, -halfH * 0.75);
+    ctx.quadraticCurveTo(halfW * 0.45, -halfH * 1.05, halfW * 0.85, -halfH * 1.3);
+    ctx.quadraticCurveTo(halfW * 0.95, -halfH * 1.05, halfW * 0.65, -halfH * 0.7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Capsule body in blue crayon gradient
+    ctx.beginPath();
+    this.roundRect(ctx, -halfW, -halfH * 0.85, w, h * 0.85, [18, 18, 14, 14]);
+    const bodyGrad = ctx.createLinearGradient(0, -halfH, 0, halfH);
+    bodyGrad.addColorStop(0, '#60a5fa');
+    bodyGrad.addColorStop(0.4, '#3b82f6');
+    bodyGrad.addColorStop(1, '#1d4ed8');
+    ctx.fillStyle = bodyGrad;
+    ctx.fill();
+
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2.4;
+    this.roundRect(ctx, -halfW, -halfH * 0.85, w, h * 0.85, [18, 18, 14, 14]);
+    ctx.stroke();
+
+    // Crayon shading texture strokes
+    ctx.strokeStyle = '#1e40af';
+    ctx.lineWidth = 1.1;
+    for (let sy = -halfH * 0.5; sy < halfH * 0.5; sy += 7) {
+      ctx.beginPath();
+      ctx.moveTo(-halfW * 0.6, sy);
+      ctx.lineTo(-halfW * 0.25, sy + 3);
+      ctx.stroke();
+    }
+
+    // Center Cyclops Eye (Yellow Iris from monster.jpg)
+    const eyeY = -halfH * 0.22;
+    const eyeRadius = halfW * 0.44;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.arc(0, eyeY, eyeRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#facc15';
+    ctx.strokeStyle = '#ca8a04';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(0, eyeY, eyeRadius * 0.72, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Dark pupil
+    const pupilX = Math.cos(tick * 0.05) * 1.5;
+    const pupilY = Math.sin(tick * 0.04) * 1.5;
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(pupilX, eyeY + pupilY, eyeRadius * 0.36, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(pupilX - 1.8, eyeY + pupilY - 1.8, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wide toothy jagged grin
+    const mouthY = halfH * 0.28;
+    const mouthW = halfW * 0.8;
+    const mouthH = halfH * 0.26;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(-mouthW, mouthY);
+    ctx.quadraticCurveTo(0, mouthY + mouthH * 1.6, mouthW, mouthY);
+    ctx.quadraticCurveTo(0, mouthY + mouthH * 0.4, -mouthW, mouthY);
+    ctx.closePath();
+    ctx.fillStyle = '#0f172a';
+    ctx.fill();
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Sawtooth white teeth
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    const toothCount = 5;
+    const toothStep = (mouthW * 2) / toothCount;
+    for (let t = 0; t < toothCount; t++) {
+      const tx1 = -mouthW + t * toothStep;
+      const tx2 = tx1 + toothStep / 2;
+      const tx3 = tx1 + toothStep;
+      ctx.moveTo(tx1, mouthY + 1);
+      ctx.lineTo(tx2, mouthY + 5.5);
+      ctx.lineTo(tx3, mouthY + 1);
+    }
+    for (let t = 0; t < toothCount - 1; t++) {
+      const tx1 = -mouthW + (t + 0.5) * toothStep;
+      const tx2 = tx1 + toothStep / 2;
+      const tx3 = tx1 + toothStep;
+      ctx.moveTo(tx1, mouthY + mouthH * 1.1);
+      ctx.lineTo(tx2, mouthY + mouthH * 0.6);
+      ctx.lineTo(tx3, mouthY + mouthH * 1.1);
+    }
+    ctx.fill();
+    ctx.restore();
+
+    // Two stick legs with round feet dangling
+    const legSwing = Math.sin(tick * 0.2) * 2.5;
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+
+    // Left leg & foot
+    ctx.beginPath();
+    ctx.moveTo(-halfW * 0.35, halfH * 0.7);
+    ctx.lineTo(-halfW * 0.4 + legSwing, halfH * 1.15);
+    ctx.stroke();
+    ctx.fillStyle = '#1e1b4b';
+    ctx.beginPath();
+    ctx.arc(-halfW * 0.4 + legSwing, halfH * 1.2, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Right leg & foot
+    ctx.beginPath();
+    ctx.moveTo(halfW * 0.35, halfH * 0.7);
+    ctx.lineTo(halfW * 0.4 - legSwing, halfH * 1.15);
+    ctx.stroke();
+    ctx.fillStyle = '#1e1b4b';
+    ctx.beginPath();
+    ctx.arc(halfW * 0.4 - legSwing, halfH * 1.2, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // 3. Red Monster (from monster.jpg: spiky red ball, sharp green cone on top, green side spikes, center eye, mouth)
+  private static drawRedMonster(
+    ctx: CanvasRenderingContext2D,
+    m: Monster,
+    tick: number
+  ) {
+    ctx.save();
+    const flip = m.facing === 'left' ? -1 : 1;
+    ctx.scale(flip, 1);
+
+    const w = m.width;
+    const h = m.height;
+    const radius = Math.min(w, h) * 0.44;
+
+    // Green spikes radiating from left and right sides
+    ctx.fillStyle = '#22c55e';
+    ctx.strokeStyle = '#14532d';
+    ctx.lineWidth = 1.8;
+    ctx.lineJoin = 'round';
+
+    const spikeAngles = [-0.7, -0.25, 0.25, 0.7];
+    for (const ang of spikeAngles) {
+      // Left side spikes
+      ctx.save();
+      const lx = -Math.cos(ang) * (radius - 2);
+      const ly = Math.sin(ang) * (radius - 2);
+      ctx.translate(lx, ly);
+      ctx.rotate(Math.PI - ang);
+      ctx.beginPath();
+      ctx.moveTo(0, -4.5);
+      ctx.lineTo(10, 0);
+      ctx.lineTo(0, 4.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      // Right side spikes
+      ctx.save();
+      const rx = Math.cos(ang) * (radius - 2);
+      const ry = Math.sin(ang) * (radius - 2);
+      ctx.translate(rx, ry);
+      ctx.rotate(ang);
+      ctx.beginPath();
+      ctx.moveTo(0, -4.5);
+      ctx.lineTo(10, 0);
+      ctx.lineTo(0, 4.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Top green horn / cone
+    ctx.beginPath();
+    ctx.moveTo(-6.5, -radius * 0.85);
+    ctx.lineTo(0, -radius * 1.7);
+    ctx.lineTo(6.5, -radius * 0.85);
+    ctx.closePath();
+    ctx.fillStyle = '#22c55e';
+    ctx.fill();
+    ctx.strokeStyle = '#14532d';
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+
+    // Cone segment lines
+    ctx.strokeStyle = '#16a34a';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-3, -radius * 1.2);
+    ctx.lineTo(3, -radius * 1.2);
+    ctx.moveTo(-4.8, -radius * 0.98);
+    ctx.lineTo(4.8, -radius * 0.98);
+    ctx.stroke();
+
+    // Round red ball body
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    const redGrad = ctx.createRadialGradient(-radius * 0.3, -radius * 0.3, 2, 0, 0, radius);
+    redGrad.addColorStop(0, '#f87171');
+    redGrad.addColorStop(0.4, '#ef4444');
+    redGrad.addColorStop(1, '#b91c1c');
+    ctx.fillStyle = redGrad;
+    ctx.fill();
+
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Red crayon texture strokes
+    ctx.strokeStyle = '#991b1b';
+    ctx.lineWidth = 1.2;
+    for (let i = 0; i < 6; i++) {
+      const a = (i * 0.9) + 0.3;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius * 0.75, a, a + 0.38);
+      ctx.stroke();
+    }
+
+    // Center Cyclops Eye (Green Iris from drawing)
+    const eyeRadius = radius * 0.42;
+    const eyeY = -radius * 0.12;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, eyeY, eyeRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Green iris
+    ctx.fillStyle = '#4ade80';
+    ctx.strokeStyle = '#16a34a';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.arc(0, eyeY, eyeRadius * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Dark pupil
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(0, eyeY, eyeRadius * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(-1.5, eyeY - 1.5, 1.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Mouth below eye with sharp teeth
+    const mouthY = radius * 0.45;
+    const mouthW = radius * 0.55;
+    const mouthH = radius * 0.28;
+
+    ctx.fillStyle = '#0f172a';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    this.roundRect(ctx, -mouthW, mouthY - mouthH / 2, mouthW * 2, mouthH, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    // Sharp white teeth
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    for (let t = -1; t <= 1; t++) {
+      const tx = t * (mouthW * 0.5);
+      ctx.moveTo(tx - 2.5, mouthY - mouthH / 2);
+      ctx.lineTo(tx + 2.5, mouthY - mouthH / 2);
+      ctx.lineTo(tx, mouthY + 1);
+    }
+    for (let t = -0.5; t <= 0.5; t += 1) {
+      const tx = t * (mouthW * 0.6);
+      ctx.moveTo(tx - 2, mouthY + mouthH / 2);
+      ctx.lineTo(tx + 2, mouthY + mouthH / 2);
+      ctx.lineTo(tx, mouthY + mouthH / 2 - 4);
+    }
+    ctx.fill();
+
+    ctx.restore();
+  }
 }
+

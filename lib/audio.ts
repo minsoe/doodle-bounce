@@ -224,6 +224,40 @@ class SoundManager {
     } catch {}
   }
 
+  // Monster collision hit - comic bonk & thud
+  public playMonsterHit() {
+    if (!this.enabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(280, now);
+      osc.frequency.exponentialRampToValueAtTime(50, now + 0.22);
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.24);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.25);
+
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(450, now + 0.04);
+      osc2.frequency.exponentialRampToValueAtTime(80, now + 0.35);
+      gain2.gain.setValueAtTime(0.2, now + 0.04);
+      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.36);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.04);
+      osc2.stop(now + 0.38);
+    } catch {}
+  }
+
   // Soft UI click / tap sound
   public playClick() {
     if (!this.enabled) return;
@@ -247,6 +281,94 @@ class SoundManager {
 
       osc.start(now);
       osc.stop(now + 0.06);
+    } catch {}
+  }
+
+  // Shoot pellet from mouth - signature mouth pop / pew sound
+  public playShoot() {
+    if (!this.enabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(720, now);
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.09);
+
+      gain.gain.setValueAtTime(0.28, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } catch {}
+  }
+
+  // Monster defeated / splat sound
+  public playMonsterDefeated() {
+    if (!this.enabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(740, now + 0.08);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.22);
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.23);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.24);
+
+      // Chime note
+      const chime = ctx.createOscillator();
+      const chimeGain = ctx.createGain();
+      chime.type = 'sine';
+      chime.frequency.setValueAtTime(880, now + 0.05);
+      chime.frequency.setValueAtTime(1174, now + 0.12);
+      chimeGain.gain.setValueAtTime(0.18, now + 0.05);
+      chimeGain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+      chime.connect(chimeGain);
+      chimeGain.connect(ctx.destination);
+      chime.start(now + 0.05);
+      chime.stop(now + 0.3);
+    } catch {}
+  }
+
+  // Reload ready click/chime
+  public playReload() {
+    if (!this.enabled) return;
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.setValueAtTime(784, now + 0.06);
+
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.18);
     } catch {}
   }
 }

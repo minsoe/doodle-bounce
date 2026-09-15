@@ -76,11 +76,57 @@ export interface Player {
   tiltAngle: number;
   rocketTimer: number; // >0 if rocket boost active
   hasShield: boolean;
+  isDying?: boolean;
+  hitByMonster?: MonsterType | null;
+  shootRecoilTimer?: number; // visual mouth puff when shooting
 }
 
-export type ControlsLayout = 'user' | 'standard'; 
-// 'user': Left = D / ArrowLeft, Right = A / ArrowRight, Jump = W / Space / ArrowUp / Click
-// 'standard': Left = A / ArrowLeft, Right = D / ArrowRight, Jump = W / Space / ArrowUp / Click
+export interface Bullet {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  active: boolean;
+  distanceTraveled: number;
+  maxDistance: number;
+}
+
+export type MonsterType = 'green' | 'blue' | 'red';
+
+export interface Monster {
+  id: number;
+  type: MonsterType;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  vx: number;
+  vy: number;
+  facing: 'left' | 'right';
+  animationTimer: number;
+  // Green monster: moves back and forth
+  minX?: number;
+  maxX?: number;
+  // Red monster: moves between two still platforms
+  platformLeftId?: number;
+  platformRightId?: number;
+  patrolLeftX?: number;
+  patrolRightX?: number;
+  baseY?: number;
+  // Blue monster: flies around
+  flyCenterX?: number;
+  flyCenterY?: number;
+  flyRadiusX?: number;
+  flyRadiusY?: number;
+  flyAngle?: number;
+  flySpeed?: number;
+}
+
+export type ControlsLayout = 'standard' | 'inverted' | 'user'; 
+// 'standard' / default: Left = A / ArrowLeft, Right = D / ArrowRight, Shoot = W / Space / ArrowUp / Click
+// 'inverted': Left = D / ArrowLeft, Right = A / ArrowRight, Shoot = W / Space / ArrowUp / Click
 
 export interface KeyState {
   jump: boolean;

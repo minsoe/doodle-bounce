@@ -168,12 +168,12 @@ export default function GameHUD({
           <button
             id="toggle-controls-layout-btn"
             onClick={onToggleControls}
-            title="Toggle between Custom [D=Left, A=Right] and Standard [A=Left, D=Right]"
+            title="Toggle between Standard [A=Left, D=Right] and Inverted [D=Left, A=Right]"
             className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
           >
             <ArrowUpDown className="w-3 h-3 text-cyan-400" />
             <span>
-              {controlsLayout === 'user' ? 'Left: D | Right: A' : 'Left: A | Right: D'}
+              {controlsLayout === 'inverted' ? 'Left: D | Right: A' : 'Left: A | Right: D'}
             </span>
           </button>
         </div>

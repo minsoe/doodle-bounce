@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { RotateCcw, Trophy, Award, Coins, Mountain, Home, Sparkles } from 'lucide-react';
-import { CharacterSkinId, Player } from '@/lib/game/types';
+import { CharacterSkinId, MonsterType, Player } from '@/lib/game/types';
 import { GameRenderer } from '@/lib/game/renderer';
 import { sounds } from '@/lib/audio';
 
@@ -15,6 +15,7 @@ interface GameOverModalProps {
   onRestart: () => void;
   onReturnToMenu?: () => void;
   currentSkin?: CharacterSkinId;
+  defeatedBy?: MonsterType | null;
 }
 
 export default function GameOverModal({
@@ -26,6 +27,7 @@ export default function GameOverModal({
   onRestart,
   onReturnToMenu,
   currentSkin = 'classic_doodle',
+  defeatedBy = null,
 }: GameOverModalProps) {
   const doodleCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -174,9 +176,20 @@ export default function GameOverModal({
           {/* Hand-drawn crayon underline accent */}
           <div className="w-20 h-1 bg-amber-400 mx-auto rounded-full my-1.5 shadow-sm" />
 
-          <p className="text-xs text-slate-600 font-medium">
-            {isNewHigh ? 'You reached a brand new personal record!' : 'You made an awesome leap into the notebook clouds!'}
-          </p>
+          {defeatedBy ? (
+            <div className="my-2 py-1 px-3 rounded-xl bg-rose-100 border border-rose-400/60 text-rose-800 text-xs font-bold inline-flex items-center gap-1.5">
+              <span>💥</span>
+              <span>
+                {defeatedBy === 'green' && 'Hit by the moving Green Monster!'}
+                {defeatedBy === 'red' && 'Hit by the patrolling Red Monster!'}
+                {defeatedBy === 'blue' && 'Hit by the flying Blue Monster!'}
+              </span>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-600 font-medium">
+              {isNewHigh ? 'You reached a brand new personal record!' : 'You made an awesome leap into the notebook clouds!'}
+            </p>
+          )}
         </div>
 
         {/* Stats Grid with hand-drawn crayon cards */}

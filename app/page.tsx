@@ -8,7 +8,7 @@ import CharacterSelectModal from '@/components/CharacterSelectModal';
 import ControlsHelpModal from '@/components/ControlsHelpModal';
 import StartScreen from '@/components/StartScreen';
 import LeaderboardModal from '@/components/LeaderboardModal';
-import { CharacterSkinId, ControlsLayout } from '@/lib/game/types';
+import { CharacterSkinId, ControlsLayout, MonsterType } from '@/lib/game/types';
 import { sounds } from '@/lib/audio';
 import { useSavedNumber, useSavedString, useSavedBoolean } from '@/lib/storage';
 
@@ -24,13 +24,14 @@ export default function JumpingGamePage() {
   const [isGameOver, setIsGameOver] = useState(false);
   const [isNewHigh, setIsNewHigh] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [defeatedByMonster, setDefeatedByMonster] = useState<MonsterType | null>(null);
 
   // Persistent settings synchronized via external store (hydration-safe)
   const [highScore, setHighScore] = useSavedNumber('jumping_game_high_score', 0);
   const [bestAltitude, setBestAltitude] = useSavedNumber('jumping_game_best_altitude', 0);
   const [totalCoins, setTotalCoins] = useSavedNumber('jumping_game_total_coins', 0);
   const [skinId, setSkinId] = useSavedString<CharacterSkinId>('jumping_game_skin', 'classic_doodle');
-  const [controlsLayout, setControlsLayout] = useSavedString<ControlsLayout>('jumping_game_controls', 'user');
+  const [controlsLayout, setControlsLayout] = useSavedString<ControlsLayout>('jumping_game_controls', 'standard');
   const [soundEnabled, setSoundEnabled] = useSavedBoolean('jumping_game_sound', true);
 
   // Modals
@@ -54,10 +55,11 @@ export default function JumpingGamePage() {
   }, [setBestAltitude]);
 
   // Handle Game Over
-  const handleGameOver = useCallback((finalScore: number, finalAltitude: number, finalCoins: number) => {
+  const handleGameOver = useCallback((finalScore: number, finalAltitude: number, finalCoins: number, defeatedBy?: MonsterType | null) => {
     setScore(finalScore);
     setAltitude(finalAltitude);
     setCoins(finalCoins);
+    setDefeatedByMonster(defeatedBy || null);
     setIsGameOver(true);
 
     setTotalCoins(prev => prev + finalCoins);
@@ -78,6 +80,7 @@ export default function JumpingGamePage() {
     setIsGameOver(false);
     setIsNewHigh(false);
     setIsPaused(false);
+    setDefeatedByMonster(null);
     // Trigger reset in GameCanvas
     const resetBtn = document.getElementById('internal-reset-btn');
     if (resetBtn) {
@@ -95,6 +98,7 @@ export default function JumpingGamePage() {
   const handleReturnToMenu = () => {
     setIsGameOver(false);
     setIsPaused(false);
+    setDefeatedByMonster(null);
     setCurrentScreen('start');
   };
 
@@ -104,9 +108,9 @@ export default function JumpingGamePage() {
     setSoundEnabled(newState);
   };
 
-  // Toggle Controls Layout (User-specified vs Standard)
+  // Toggle Controls Layout (Standard [A=Left, D=Right] vs Inverted [D=Left, A=Right])
   const handleToggleControls = () => {
-    const nextLayout: ControlsLayout = controlsLayout === 'user' ? 'standard' : 'user';
+    const nextLayout: ControlsLayout = controlsLayout === 'inverted' ? 'standard' : 'inverted';
     setControlsLayout(nextLayout);
   };
 
@@ -202,6 +206,7 @@ export default function JumpingGamePage() {
           onRestart={handleRestart}
           onReturnToMenu={handleReturnToMenu}
           currentSkin={skinId}
+          defeatedBy={defeatedByMonster}
         />
       )}
 

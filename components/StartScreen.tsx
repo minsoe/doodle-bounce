@@ -445,7 +445,7 @@ export default function StartScreen({
           {/* Quick controls sticker on paper */}
           <div className="text-[11px] font-mono text-slate-600 bg-white/80 border-2 border-dashed border-slate-400/70 rounded-xl p-2.5 shadow-sm max-w-[180px] self-end hidden sm:block">
             <div className="font-bold text-[#1e3a8a] uppercase text-[10px] mb-1">🎮 Quick Controls</div>
-            <div>• <strong className="text-emerald-700">W / Space:</strong> Jump</div>
+            <div>• <strong className="text-emerald-700">W / Space:</strong> Shoot</div>
             <div>• <strong className="text-amber-700">A / D:</strong> Move Left/Right</div>
           </div>
         </div>
