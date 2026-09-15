@@ -3,9 +3,24 @@ import {PHASE_DEVELOPMENT_SERVER} from 'next/constants';
 
 const nextConfig = (phase: string): NextConfig => {
   const isDev = phase === PHASE_DEVELOPMENT_SERVER;
+  const isExport = process.env.STATIC_EXPORT === 'true' || process.env.GITHUB_ACTIONS === 'true';
+
+  let basePath: string | undefined = undefined;
+  if (isExport) {
+    if (process.env.NEXT_PUBLIC_BASE_PATH) {
+      basePath = process.env.NEXT_PUBLIC_BASE_PATH;
+    } else if (process.env.GITHUB_REPOSITORY) {
+      const repoName = process.env.GITHUB_REPOSITORY.split('/')[1];
+      if (repoName && !repoName.endsWith('.github.io')) {
+        basePath = `/${repoName}`;
+      }
+    }
+  }
 
   return {
-    output: 'standalone',
+    output: isExport ? 'export' : 'standalone',
+    basePath,
+    trailingSlash: isExport ? true : undefined,
     distDir: isDev ? '.next-dev' : '.next',
     reactStrictMode: true,
   eslint: {
@@ -16,6 +31,7 @@ const nextConfig = (phase: string): NextConfig => {
   },
   // Allow access to remote image placeholder.
   images: {
+    unoptimized: isExport,
     remotePatterns: [
       {
         protocol: 'https',
